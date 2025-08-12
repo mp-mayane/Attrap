@@ -1,0 +1,17 @@
+name: attrap
+channels:
+  - conda-forge
+  - bioconda
+  - defaults
+dependencies:
+  - requests
+  - selenium
+  - pytz
+  - dateparser
+  - urllib3
+  - beautifulsoup4
+  - pyvirtualdisplay
+  - pypdf
+  - ftfy
+  - regex
+  - transformers

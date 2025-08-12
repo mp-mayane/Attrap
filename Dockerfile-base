@@ -1,0 +1,11 @@
+FROM debian:trixie
+
+ENV DEBIAN_FRONTEND="noninteractive"
+ENV TZ="Europe/Paris"
+
+ENV LANG="C.UTF-8"
+RUN apt-get update && \
+	apt-get dist-upgrade -y && \
+	apt-get install --no-install-recommends -y python3 python3-virtualenv python-is-python3 chromium-driver make xauth xvfb tesseract-ocr tesseract-ocr-eng tesseract-ocr-fra curl unzip zip tor file ghostscript && \
+	apt-get clean && \
+	rm -rf /var/lib/apt/lists
