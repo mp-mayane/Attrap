@@ -41,10 +41,13 @@ import smtplib
 import email
 
 import ftfy
+from CamemBERT import NERPipeline
 
 logger = logging.getLogger(__name__)
 
 anti_join = ['Communes  de ','Commune de','Commune de  ','Commune','Communes','communes','Commune de la','Commune du','Commune des','Commune d\'']
+
+ner = NERPipeline()
 
 class Attrap:
     class RAA:
@@ -613,22 +616,19 @@ class Attrap:
 
             for i, line in enumerate(lines):
                 if communes.search(line):
-                    next_lines = lines[i+1:i+2]
-                    full_line = line+' '+next_lines[0]
+                    snippet = " ".join(lines[max(0, i - 2):min(len(lines), i + 5)])
                     break
 
             for anti in anti_join:
-                if anti in full_line:
-                    full_line = full_line.strip(anti)
+                if anti in snippet:
+                    snippet = snippet.strip(anti)
 
-            names = full_line.replace('  et ', ',').strip('.').split(',')
-
-            name = [name.strip(' ') for name in names]
+            name = ner.run(snippet)
 
             print(name)
 
-            self.print_output(f'Le RAA {raa.name} ({raa.url}) a été trouvé le {date.strftime("%d/%m/%Y")}.')
-            self.print_output(f'Le RAA {raa.name} ({raa.url}) a été trouvé pour les communes suivantes : {", ".join(name)}')
+            self.print_output(f'Le PPRI {raa.name} ({raa.url}) a été trouvé le {date.strftime("%d/%m/%Y")}.')
+            self.print_output(f'Le PPRI {raa.name} ({raa.url}) a été trouvé pour les communes suivantes : {", ".join(name)}')
             found = False
             found_keywords = []
             for keyword in keywords.split(','):
@@ -640,7 +640,7 @@ class Attrap:
                         #self.print_output(f'URL : {url}')
                         found = True
                         self.found = True
-                    self.print_output(f'    Le terme \033[1m{keyword}\033[0m a été trouvé.')
+                    self.print_output(f'Le terme \033[1m{keyword}\033[0m a été trouvé.')
                     found_keywords.append(keyword)
             if found:
                 self.print_output('')

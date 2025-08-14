@@ -4,6 +4,7 @@ from bs4 import BeautifulSoup
 from urllib.parse import unquote
 
 from Attrap import Attrap
+from CamemBERT import NERPipeline
 import regex as re
 
 import locale
