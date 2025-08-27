@@ -15,7 +15,7 @@ import json
 from urllib.parse import quote
 import locale
 
-locale.setlocale(locale.LC_TIME, 'fr_FR.UTF-8') 
+locale.setlocale(locale.LC_TIME, 'French_France.1252') 
 
 from selenium import webdriver
 from selenium.common.exceptions import TimeoutException
@@ -45,7 +45,8 @@ from CamemBERT import NERPipeline
 
 logger = logging.getLogger(__name__)
 
-anti_join = ['Communes  de ','Commune de','Commune de  ','Commune','Communes','communes','Commune de la','Commune du','Commune des','Commune d\'']
+# anti_join = ['Communes  de ','Commune de','Commune de  ','Commune','Communes','communes','Commune de la','Commune du','Commune des','Commune d\'']
+anti_name = ['PPRI du','PERI du',"PSS du",'PERI de','PSS de','PPRI de','PPRI d\'','PERI d\'','PSS d\'','PPRI','PSS']
 
 ner = NERPipeline()
 
@@ -106,11 +107,11 @@ class Attrap:
 
             reader = PdfReader(f'{raa_data_dir}/{self.get_sha256()}.ocr.pdf')
             ftfy_config = ftfy.TextFixerConfig(unescape_html=False, explain=False)
-            for page in reader.pages:
+            for nb,page in enumerate(reader.pages):
                 try:
                     text = text + "\n" + ftfy.fix_text(page.extract_text(), config=ftfy_config)
                 except Exception as e:
-                    logger.warning(f'ATTENTION: Impossible d\'extraire le texte du fichier {self.get_sha256()}.pdf : {e}')
+                    logger.warning(f'ATTENTION: Impossible d\'extraire le texte du fichier {self.get_sha256()}.pdf à la page {nb} : {e}')
 
             # Écrit le texte du PDF dans un fichier texte pour une analyse future
             f = open(f'{raa_data_dir}/{self.name}.txt', 'w', encoding='utf-8')
@@ -175,6 +176,8 @@ class Attrap:
         self.not_before = datetime.datetime(2024, 1, 1)
         self.smtp_configured = False
         self.safe_mode = False
+#        self.regex_mode = [re.compile(r"(r[ée]glement[\s–-]*\w+|DDE\/SP[ER]|approuvé[e]?(?:\s+\w+)*\s+le|(?:l['’]\s*)?arrêté(?:\s+[-\w]+)*\s+du)\s*:?\s*(\d{1,2}\s+[a-zéû]+\s+\d{4}|\d{2}/\d{2}/\d{4})"),re.compile("(D[eé]cret\s+du*|Décret\s+n[°º]?\s*\d+(?:-\d+)*\s+du)\s*:?\s*(\d{1,2}\s+[a-zéû]+\s+\d{4}|\d{2}/\d{2}/\d{4})")]
+
 
         self.update_user_agent(user_agent)
 
@@ -264,7 +267,6 @@ class Attrap:
     def get_sub_pages_with_pager(self, page, sub_page_element, pager_element, details_element, host, selenium=False):
         """
         Récupère, à partir d'un chemin CSS, les sous-pages d'une page contenant un pager.
-
         page -- L'URL ou le contenu HTML de la page à analyser
         sub_page_element -- Le chemin CSS vers l'objet renvoyant vers la sous-page recherchée
         pager_element -- Le chemin CSS vers le lien de page suivante du pager
@@ -456,7 +458,6 @@ class Attrap:
     def get_page(self, url, method, data={}, selenium=False):
         """
         Récupère le contenu HTML d'une page web
-
         url -- L'URL de la page demandée
         method -- 'post' ou 'get', selon le type de requête
         data -- Un dictionnaire contenant les données à envoyer au site
@@ -542,8 +543,8 @@ class Attrap:
             logger.warning(f'ATTENTION: Impossible de télécharger le fichier {raa.url}: {exc}')
 
     def ocr(self, raa, retry_on_failure=True):
-        """OCRise un RAA"""
-        print("Oyez Oyez, voici l'ocrisation du RAA",self.data_dir,raa.name_of_ppri,raa.get_sha256())
+        """Ocrise un PPRI"""
+        print("Oyez Oyez, voici l'ocrisation du PPRI",self.data_dir,raa.name_of_ppri,raa.get_sha256())
         cmd = [
             'ocrmypdf',
             '-l', 'fra',
@@ -588,46 +589,92 @@ class Attrap:
 
     def search_keywords(self, raa, keywords):
         """Recherche des mots-clés dans le texte extrait du PDF"""
-
         if keywords and not keywords == '':
             text = open(f'{self.data_dir}/{raa.name_of_ppri}/{raa.name}.txt',encoding="utf-8").read()
 
-            datum = re.search(r'(?:.*?)(?:approuvé[e]?\s+.*?le\s+.*?:?|DDE\/SPE|prescrit\s+.*?le\s+.*?:?|r[ée]glement[\s–-]*?(.*?)[\s–-]*?da)\s*(\d{1,2}\s+[a-zéû]+\s+\d{4}|\d{2}\/\d{2}\/\d{4})', text, re.IGNORECASE | re.MULTILINE).group(0)
-            date_mod = re.search(r'^(.*)modifié[e]?\s+(.*)le\s+(.*):?\s*(\d{1,2}\s+[a-zéû]+\s+\d{4}|\d{2}/\d{2}/\d{4})', text, re.IGNORECASE | re.MULTILINE)
+#            datum = re.search(r'(r[ée]glement[\s–-]*?.*?[\s–-]*?da|DDE\/SPE|prescrit\s+.*?le\s+.*?:?|approuvé[e]?\s+.*?le\s+.*?:?)\s*(\d{1,2}\s+[a-zéû]+\s+\d{4}|\d{2}\/\d{2}\/\d{4})', text, re.IGNORECASE | re.MULTILINE).group(0)
+#            date_regex = "(\d{1,2}\s+[a-zéû]+\s+\d{4}|\d{2}/\d{2}/\d{4})"
 
-            try:
-                date = datetime.datetime.strptime(re.search(r"\d{1,2}\s+[a-zéû]+\s+\d{4}", datum).group(0), '%d %B %Y').date()
-            except AttributeError:
-                date = datetime.datetime.strptime(re.search(r"\d{2}/\d{2}/\d{4}", datum).group(0), '%d/%m/%Y').date()
+#            print(self.regex_mode)
+            datum,date,is_month = None,None,False
+            datum = re.search(r"(r[ée]glement[\s–-]*\w+|DDE\/SP[ER]|approuvé[e]?(?:\s+\w+)*\s+le|(?:l['’]\s*)?arrêté(?:\s+[-\w]+)*\s+du)\s*:?\s*(\d{1,2}\s+[a-zéû]+\s+\d{4}|\d{2}/\d{2}/\d{4})", text, re.IGNORECASE | re.MULTILINE)
+            if datum is not None:
+                datum = datum.group(0)
+            else:
+                print('Recherche mois')
+                datum = re.search(r"(?:janvier|f[eé]vrier|mars|avril|mai|juin|juillet|ao[uû]t|septembre|octobre|novembre|d[eé]cembre)\s\d{4}", text, re.IGNORECASE | re.MULTILINE)
+                if datum is not None:
+                   datum = datum.group(0)
+                   is_month = True
+                else:
+                    print('Recherche décret')
+                    datum =  re.search(r"(D[eé]cret\s+du*|Décret\s+n[°º]?\s*\d+(?:-\d+)*\s+du)\s*:?\s*(\d{1,2}\s+[a-zéû]+\s+\d{4}|\d{2}/\d{2}/\d{4})", text, re.IGNORECASE | re.MULTILINE)
+                    if datum is not None:
+                        datum = datum.group(0)
+                    else:
+                        print(f'Impossible de touver une date pour le PPRI : {raa.name}')                   
+            #         datum =  re.search(r"D[eé]cret\s+du*|Décret\s+n[°º]?\s*\d+(?:-\d+)*\s+du)\s*:?\s*(\d{1,2}\s+[a-zéû]+\s+\d{4}|\d{2}/\d{2}/\d{4})", text, re.IGNORECASE | re.MULTILINE)
+            #         if datum is not None:
+            #             datum = datum.group(0)
+            #         else:
+            #             print(f'Impossible de touver une date pour le PPRI : {raa.name}')
+
+            date_mod = re.search(r'^(.*)modifié[e]?\s+(.*)le\s+(.*):?\s*(\d{1,2}\s+[a-zéû]+\s+\d{4}|\d{2}/\d{2}/\d{4})', text, re.IGNORECASE | re.MULTILINE)
+            if datum is not None and not is_month:
+                try:
+                    print(datum)
+                    date = datetime.datetime.date(dateparser.parse(re.search(r"\d{1,2}\s+[a-zéû]+\s+\d{4}", datum).group(0),languages=['fr']))
+                    # date = datetime.datetime.strptime(re.search(r"\d{1,2}\s+[a-zéû]+\s+\d{4}", datum).group(0), '%d %B %Y').date()
+                except AttributeError:
+                    print(datum)
+                    date = datetime.datetime.date(dateparser.parse(re.search(r"\d{2}/\d{2}/\d{4}", datum).group(0),languages=['fr']))
+                    #date = datetime.datetime.strptime(re.search(r"\d{2}/\d{2}/\d{4}", datum).group(0), '%d/%m/%Y').date()
+                print("Voici la date regardez bien : ",date)
+            else:
+                date = datetime.datetime.date(dateparser.parse(datum,date_formats=["%B %Y","%b %Y"],languages=['fr']))
+                print("Voici la date regardez bien : ",date)
+
                         
             if date_mod is not None:
                 try:
-                    date_mod = datetime.datetime.strptime(re.search(r"\d{1,2}\s+[a-zéû]+\s+\d{4}", date_mod.group(0)).group(0), '%d %B %Y').date()
+                    date_mod = datetime.datetime.date(dateparser.parse(re.search(r"\d{1,2}\s+[a-zéû]+\s+\d{4}", date_mod.group(0)).group(0)))
+                    #date_mod = datetime.datetime.strptime(re.search(r"\d{1,2}\s+[a-zéû]+\s+\d{4}", date_mod.group(0)).group(0), '%d %B %Y').date()
+                    print(date_mod)
                 except AttributeError:
-                    date_mod = datetime.datetime.strptime(re.search(r"\d{2}/\d{2}/\d{4}", date_mod.group(0)).group(0), '%d %B %Y').date()
+                    date_mod = datetime.datetime.date(dateparser.parse(re.search(r"\d{2}/\d{2}/\d{4}", date_mod.group(0)).group(0)))
+                    # date_mod = datetime.datetime.strptime(re.search(r"\d{2}/\d{2}/\d{4}", date_mod.group(0)).group(0), '%d %B %Y').date()
+                    print(date_mod)
 
                 if date_mod > date:
                     date = date_mod
-            print("Voici la date regardez bien : ",date)
 
-            communes = re.compile(r'communes', re.IGNORECASE | re.MULTILINE)
+            communes = re.compile(r'\bcommune[s]?\b', re.IGNORECASE | re.MULTILINE)
 
             lines = text.splitlines()
 
             for i, line in enumerate(lines):
                 if communes.search(line):
-                    snippet = " ".join(lines[max(0, i - 2):min(len(lines), i + 5)])
+                    snippet = " ".join(lines[max(0, i - 3):min(len(lines), i + 6)])
                     break
+                else:
+                    snippet = ""
 
-            for anti in anti_join:
-                if anti in snippet:
-                    snippet = snippet.strip(anti)
+            print(f"Look at the snippet, it's here : {snippet}")
+
+            # for anti in anti_join:
+            #     if anti in snippet:
+            #         snippet = snippet.strip(anti)
 
             name = ner.run(snippet)
 
-            print(name)
+            if not name:
+                for anti in anti_name:
+                    if anti in raa.name_of_ppri:
+                        name = [re.sub(anti, '', raa.name_of_ppri).strip()]
+                        break
 
-            self.print_output(f'Le PPRI {raa.name} ({raa.url}) a été trouvé le {date.strftime("%d/%m/%Y")}.')
+
+            self.print_output(f'Le PPRI {raa.name} ({raa.url}) a été trouvé le {date.strftime("%d/%m/%Y")}.' if date else "Pas de date trouvée")
             self.print_output(f'Le PPRI {raa.name} ({raa.url}) a été trouvé pour les communes suivantes : {", ".join(name)}')
             found = False
             found_keywords = []
@@ -635,9 +682,6 @@ class Attrap:
                 if re.search(keyword, text, re.IGNORECASE | re.MULTILINE):
                     if not found:
                         url = quote(raa.url, safe='/:')
-
-                        # self.print_output(f'\033[92m{raa.name}\033[0m ({date_str})')
-                        #self.print_output(f'URL : {url}')
                         found = True
                         self.found = True
                     self.print_output(f'Le terme \033[1m{keyword}\033[0m a été trouvé.')
@@ -667,7 +711,8 @@ class Attrap:
             print(f'Document:{raa.name} - URL: {raa.url} - PPRI: {raa.name_of_ppri}')
             # Si le fichier n'a pas déjà été parsé et qu'il est postérieur à la
             # date maximale d'analyse, on le télécharge et on le parse
-            if re.search(r'R[èe]glement', raa.name, re.IGNORECASE):
+            # if re.search(r'^(?!.*\bCarte[s]?\b).*\bR[èe]glement\b', raa.name, re.IGNORECASE):
+            if re.search(r'\bR[èe]glement\b', raa.name, re.IGNORECASE):
                 if not os.path.isfile(f'{self.data_dir}/{raa.name_of_ppri}/{raa.get_sha256()}.txt'): #and (not raa.date or (raa.date >= Attrap.get_aware_datetime(self.not_before, timezone=self.timezone))):
                     url = quote(raa.url, safe='/:')
                     #print(f'Ce fichier n\'a pas encore été analysé: {raa.name} ({url})')          
@@ -690,7 +735,7 @@ class Attrap:
                         self.search_keywords(raa, keywords)                        
                     except PdfStreamError as exc:
                         print(f'ATTENTION: le fichier {raa.name} n\'est pas un PDF valide : {exc}')
-                        logger.warning(f'ATTENTION: le RAA à l\'adresse {raa.url} n\'est pas valide ! On l\'ignore...')
+                        logger.warning(f'ATTENTION: le RAA à l\'adress e {raa.url} n\'est pas valide ! On l\'ignore...')
                         os.remove(f'{self.data_dir}/{raa.name_of_ppri}/{raa.get_sha256()}.pdf')
                         os.remove(f'{self.data_dir}/{raa.name_of_ppri}/{raa.get_sha256()}.json')
                     except EmptyFileError as exc:
@@ -702,7 +747,6 @@ class Attrap:
                 #self.download_file(raa,True)
                 print('Ce document ne nous intérèsse pas, on ne l\'analyse pas')
                 # On supprime le fichier de metadonnées puisqu'on ne le parsera pas
-
 
     def get_raa(self, page_content):
         logger.error('Cette fonction doit être surchargée')
