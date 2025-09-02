@@ -10,12 +10,15 @@ class Attrap_PPRI_38(Attrap_prefdpt):
     short_code = 'pref38'
     timezone = 'Europe/Paris'
 
+
     # Configuration des widgets à analyser
     #year_regex = '(?:(?:[Rr]ecueils{0,1} des [Aa]ctes [Aa]dministratifs de la [Pp]réfecture de l\'Isère[ -]*)|(?:Année ))([0-9]{4})'
     denomation_regex = 'PPRI|PPR|PSS|PERI'
     Attrap_prefdpt.grey_card['regex']['denomination'] = denomation_regex
     Attrap_prefdpt.white_card['regex']['denomination'] = denomation_regex
     Attrap_prefdpt.white_card['exclude'] = ['Vous recherchez "Le Journal officiel de la République française" ?']
+    Attrap_prefdpt.nom_des_rglts = r'\bR[èe]glement\b'
+    
 
     # On ajoute un widget de menu déroulant
     Attrap_prefdpt.select_widgets.append(
