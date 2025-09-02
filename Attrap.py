@@ -46,11 +46,12 @@ from CamemBERT import NERPipeline
 logger = logging.getLogger(__name__)
 
 # anti_join = ['Communes  de ','Commune de','Commune de  ','Commune','Communes','communes','Commune de la','Commune du','Commune des','Commune d\'']
-anti_name = ['PPRI du','PERI du',"PSS du",'PERI de','PSS de','PPRI de','PPRI d\'','PERI d\'','PSS d\'','PPRI','PSS']
+anti_name = ['PPRI du','PPRNi du','PERI du',"PSS du",'PERI de','PSS de','PPRI de','PPRI d\'','PERI d\'','PSS d\'','PPRI','PSS']
 
 ner = NERPipeline()
 
 class Attrap:
+    nom_des_rglts = None
     class RAA:
         """La classe représentant un Recueil des actes administratifs. La plupart du temps, il s'agit d'un PDF avec plusieurs arrêtés."""
 
@@ -76,24 +77,6 @@ class Attrap:
             if (self.sha256 == ""):
                 self.sha256 = hashlib.sha256(self.url.encode('utf-8')).hexdigest()
             return self.sha256
-
-        # def get_pdf_dates(self, data_dir):
-        #     """Extrait les dates des PDF pour les ajouter à l'objet du RAA."""
-        #     raa_data_dir = f'{data_dir}/raa/'
-
-        #     reader = PdfReader(f'{raa_data_dir}{self.get_sha256()}.pdf')
-        #     pdf_metadata = reader.metadata
-
-        #     if pdf_metadata:
-        #         if pdf_metadata.creation_date:
-        #             self.pdf_creation_date = Attrap.get_aware_datetime(pdf_metadata.creation_date, timezone=self.timezone)
-        #             if self.date is None:
-        #                 self.date = Attrap.get_aware_datetime(pdf_metadata.creation_date, timezone=self.timezone)
-
-        #         if pdf_metadata.modification_date:
-        #             self.pdf_modification_date = Attrap.get_aware_datetime(pdf_metadata.modification_date, timezone=self.timezone)
-        #             if self.date is None:
-        #                 self.date = Attrap.get_aware_datetime(pdf_metadata.modification_date, timezone=self.timezone)
 
         def extract_content(self, data_dir):
             """Extrait le contenu du PDF OCRisé pour l'écrire dans le fichier qui servira à faire la recherche de mots-clés. Supprime tous les PDF à la fin."""
@@ -177,8 +160,7 @@ class Attrap:
         self.smtp_configured = False
         self.safe_mode = False
 #        self.regex_mode = [re.compile(r"(r[ée]glement[\s–-]*\w+|DDE\/SP[ER]|approuvé[e]?(?:\s+\w+)*\s+le|(?:l['’]\s*)?arrêté(?:\s+[-\w]+)*\s+du)\s*:?\s*(\d{1,2}\s+[a-zéû]+\s+\d{4}|\d{2}/\d{2}/\d{4})"),re.compile("(D[eé]cret\s+du*|Décret\s+n[°º]?\s*\d+(?:-\d+)*\s+du)\s*:?\s*(\d{1,2}\s+[a-zéû]+\s+\d{4}|\d{2}/\d{2}/\d{4})")]
-
-
+        print(f"Recherche des réglements avec la regex:,{self.nom_des_rglts}")
         self.update_user_agent(user_agent)
 
         f = open(self.output_file_path, 'w')
@@ -192,7 +174,7 @@ class Attrap:
             self.safe_mode = True
             logger.warning('ATTENTION: le safe mode est activé, configuration d\'un délai entre chaque requête')
             self.sleep_time = 30
-
+    
     def enable_tor(self, max_requests=0):
         """Active l'utilisation de Tor pour effectuer les requêtes."""
         if not self.safe_mode:
@@ -369,7 +351,6 @@ class Attrap:
 
         page_content -- Un contenu HTML à analyser
         """
-        elements = []
         soup = BeautifulSoup(page_content, 'html.parser')
         for a in soup.find_all('a', href=True):
             if a['href'].endswith('.pdf'):
@@ -597,7 +578,8 @@ class Attrap:
 
 #            print(self.regex_mode)
             datum,date,is_month = None,None,False
-            datum = re.search(r"(r[ée]glement[\s–-]*\w+|DDE\/SP[ER]|approuvé[e]?(?:\s+\w+)*\s+le|(?:l['’]\s*)?arrêté(?:\s+[-\w]+)*\s+du)\s*:?\s*(\d{1,2}\s+[a-zéû]+\s+\d{4}|\d{2}/\d{2}/\d{4})", text, re.IGNORECASE | re.MULTILINE)
+#            datum = re.search(r"(r[ée]glement[\s–-]*\w+|DDE\/SP[ER]|approuvé[e]?(?:\s+\w+)*\s+le|(?:l['’]\s*)?arrêté(?:\s+[-\w]+)*\s+du)\s*:?\s*(\d{1,2}\s+[a-zéû]+\s+\d{4}|\d{2}/\d{2}/\d{4})", text, re.IGNORECASE | re.MULTILINE)
+            datum = re.search(r"(r[ée]glement[\s–-]*\w+|DDE\/SP[ER]|approuvé[e]?(?:\s+\w+)*\s+le)\s*:?\s*(\d{1,2}\s+[a-zéû]+\s+\d{4}|\d{2}/\d{2}/\d{4})", text, re.IGNORECASE | re.MULTILINE)
             if datum is not None:
                 datum = datum.group(0)
             else:
@@ -608,7 +590,7 @@ class Attrap:
                    is_month = True
                 else:
                     print('Recherche décret')
-                    datum =  re.search(r"(D[eé]cret\s+du*|Décret\s+n[°º]?\s*\d+(?:-\d+)*\s+du)\s*:?\s*(\d{1,2}\s+[a-zéû]+\s+\d{4}|\d{2}/\d{2}/\d{4})", text, re.IGNORECASE | re.MULTILINE)
+                    datum =  re.search(r"(D[eé]cret\s+du*|Décret\s+n[°º]?\s*\d+(?:-\d+)*\s+du|(?:l['’]\s*)?arrêté(?:\s+[-\w]+|prescrit\s+.*?le\s+.*?:?)\s*:?\s*(\d{1,2}\s+[a-zéû]+\s+\d{4}|\d{2}/\d{2}/\d{4})", text, re.IGNORECASE | re.MULTILINE)
                     if datum is not None:
                         datum = datum.group(0)
                     else:
@@ -676,32 +658,43 @@ class Attrap:
 
             self.print_output(f'Le PPRI {raa.name} ({raa.url}) a été trouvé le {date.strftime("%d/%m/%Y")}.' if date else "Pas de date trouvée")
             self.print_output(f'Le PPRI {raa.name} ({raa.url}) a été trouvé pour les communes suivantes : {", ".join(name)}')
+
+
             found = False
             found_keywords = []
+            summaries = []
             for keyword in keywords.split(','):
-                if re.search(keyword, text, re.IGNORECASE | re.MULTILINE):
+                for i, line in enumerate(lines):
+                    if re.search(keyword, line, re.IGNORECASE | re.MULTILINE):
+                        print(f"\n\nBARThez résume le paragraphe pour le mot {keyword} : \n\n")
+                        summary = ner.summarize(" ".join(lines[max(0, i - 15):min(len(lines), i + 15)]) if len(" ".join(lines[max(0, i - 15):min(len(lines), i + 15)])) < 4000 else " ".join(lines[max(0, i - 10):min(len(lines), i + 10)]) )
+                        print(f"\n\nRésumé BARThez: {summary}\n\n")
+                        self.print_output(f'Le terme \033[1m{keyword}\033[0m a été trouvé.')
+                        found_keywords.append(keyword)
+                        summaries.append(summary)
+                        break
                     if not found:
                         url = quote(raa.url, safe='/:')
                         found = True
                         self.found = True
-                    self.print_output(f'Le terme \033[1m{keyword}\033[0m a été trouvé.')
-                    found_keywords.append(keyword)
+                        
+            
             if found:
                 self.print_output('')
                 url = quote(raa.url, safe='/:')
                 found_keywords_str = ', '.join(
                     [str(x) for x in found_keywords]
                 )
-                logger.info(f'Le RAA {raa.name} ({url}) contient les mots-clés suivants : {found_keywords_str}')
+                logger.info(f'Le PPRI {raa.name} ({url}) contient les mots-clés suivants : {found_keywords_str}')
             os.remove(f'{self.data_dir}/{raa.name_of_ppri}/{raa.get_sha256()}.json')
 
 
     def parse_raa(self, elements, keywords):
         keywords= keywords.strip()
         """
-        Démarre l'analyse des RAA.
+        Démarre l'analyse des PPRI.
 
-        elements -- Un tableau contenant les RAA à analyser
+        elements -- Un tableau contenant les PPRI à analyser
         keywords -- Les mots-clés à rechercher dans chaque RAA
         """
         self.print_output(f'Termes recherchés: {keywords}')
@@ -712,7 +705,7 @@ class Attrap:
             # Si le fichier n'a pas déjà été parsé et qu'il est postérieur à la
             # date maximale d'analyse, on le télécharge et on le parse
             # if re.search(r'^(?!.*\bCarte[s]?\b).*\bR[èe]glement\b', raa.name, re.IGNORECASE):
-            if re.search(r'\bR[èe]glement\b', raa.name, re.IGNORECASE):
+            if re.search(self.nom_des_rglts, raa.name, re.IGNORECASE):
                 if not os.path.isfile(f'{self.data_dir}/{raa.name_of_ppri}/{raa.get_sha256()}.txt'): #and (not raa.date or (raa.date >= Attrap.get_aware_datetime(self.not_before, timezone=self.timezone))):
                     url = quote(raa.url, safe='/:')
                     #print(f'Ce fichier n\'a pas encore été analysé: {raa.name} ({url})')          

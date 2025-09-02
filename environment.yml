@@ -1,9 +1,10 @@
-name: attrap
+name: test
 channels:
   - conda-forge
   - bioconda
   - defaults
 dependencies:
+  - python=3.13
   - requests
   - selenium
   - pytz
@@ -14,4 +15,8 @@ dependencies:
   - pypdf
   - ftfy
   - regex
-  - transformers
+  - pip
+  - pip : 
+    - transformers
+    - torch
+    - ocrmypdf

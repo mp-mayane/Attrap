@@ -4,7 +4,6 @@ from bs4 import BeautifulSoup
 from urllib.parse import unquote
 
 from Attrap import Attrap
-from CamemBERT import NERPipeline
 import regex as re
 
 import locale
@@ -13,7 +12,6 @@ locale.setlocale(locale.LC_TIME, 'fr_FR.UTF-8')
 class Attrap_prefdpt(Attrap):
 
     user_agent = 'Mozilla/5.0 (X11; Linux x86_64; rv:128.0) Gecko/20100101 Firefox/128.0'
-
     # Paramètres par défaut des cartes grises et blanches. Devrait la plupart du temps être surchargés par la classe de préfecture de département
     grey_card = {
         'regex': {
@@ -45,6 +43,7 @@ class Attrap_prefdpt(Attrap):
         'add_year_to_months': False
     }
 
+    nom_des_rglts = None
     # Liste des widgets à analyser (sera remplie au moment de l'initialisation, mais peut être surchargée par la classe de préfecture de département)
     widgets = []
     select_widgets = []
@@ -112,6 +111,8 @@ class Attrap_prefdpt(Attrap):
         return urls
 
     def __init__(self, data_dir):
+
+        Attrap.nom_des_rglts = self.nom_des_rglts
         """Une classe générique permettant d'analyser les préfectures de département en fonction de certains paramètres."""
 
         super().__init__(data_dir, self.user_agent)
@@ -245,20 +246,19 @@ class Attrap_prefdpt(Attrap):
                 for option in select.find_all('option'):
                     if not option['value'] == "" and option['title'].strip() not in select_widget.exclude:
                          # On estime la date à partir du nom de fichier
-                        date = Attrap.guess_date(option['title'].strip(), select_widget.regex)
-                        match select_widget.type:
-                            case 'year':
-                                date = date.replace(day=1, month=1)
-                                not_before = self.not_before.replace(day=1, month=1)
-                            case 'year-month':
-                                date = date.replace(day=1)
-                                not_before = self.not_before.replace(day=1)
-                            case _:
-                                not_before = self.not_before
+                        # date = Attrap.guess_date(option['title'].strip(), select_widget.regex)
+                        # match select_widget.type:
+                        #     case 'year':
+                        #         date = date.replace(day=1, month=1)
+                        #         not_before = self.not_before.replace(day=1, month=1)
+                        #     case 'year-month':
+                        #         date = date.replace(day=1)
+                        #         not_before = self.not_before.replace(day=1)
+                        #     case _:
+                        #         not_before = self.not_before
 
                          # Si la date estimée correspond à la plage d'analyse ou si follow_link_on_unrecognised_date est à True,
                          # on demande au serveur les détails du RAA
-                        if (date.year < 9999 and date >= not_before) or (date.year == 9999 and select_widget.follow_link_on_unrecognised_date):
                             page_content = self.get_page(
                                 page_url[0],
                                 'post',
@@ -289,3 +289,5 @@ class Attrap_prefdpt(Attrap):
                 raa = Attrap.RAA(url, name,name_of_ppri) # type: ignore
                 elements.append(raa)
         return elements
+
+    
