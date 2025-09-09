@@ -17,9 +17,8 @@ class Attrap_PPRI_38(Attrap_prefdpt):
     Attrap_prefdpt.grey_card['regex']['denomination'] = denomation_regex
     Attrap_prefdpt.white_card['regex']['denomination'] = denomation_regex
     Attrap_prefdpt.white_card['exclude'] = ['Vous recherchez "Le Journal officiel de la République française" ?']
-    Attrap_prefdpt.nom_des_rglts = r'\bR[èe]glement\b'
+    Attrap_prefdpt.nom_des_rglts = r'\b(R[èe]glement|Rglt)\b'
     
-
     # On ajoute un widget de menu déroulant
     Attrap_prefdpt.select_widgets.append(
         Attrap_prefdpt.DptSelectWidget(
