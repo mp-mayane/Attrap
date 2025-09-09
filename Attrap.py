@@ -14,6 +14,7 @@ import datetime
 import json
 from urllib.parse import quote
 import locale
+import csv
 
 locale.setlocale(locale.LC_TIME, 'French_France.1252') 
 
@@ -159,6 +160,7 @@ class Attrap:
         self.not_before = datetime.datetime(2024, 1, 1)
         self.smtp_configured = False
         self.safe_mode = False
+
 #        self.regex_mode = [re.compile(r"(r[ée]glement[\s–-]*\w+|DDE\/SP[ER]|approuvé[e]?(?:\s+\w+)*\s+le|(?:l['’]\s*)?arrêté(?:\s+[-\w]+)*\s+du)\s*:?\s*(\d{1,2}\s+[a-zéû]+\s+\d{4}|\d{2}/\d{2}/\d{4})"),re.compile("(D[eé]cret\s+du*|Décret\s+n[°º]?\s*\d+(?:-\d+)*\s+du)\s*:?\s*(\d{1,2}\s+[a-zéû]+\s+\d{4}|\d{2}/\d{2}/\d{4})")]
         print(f"Recherche des réglements avec la regex:,{self.nom_des_rglts}")
         self.update_user_agent(user_agent)
@@ -183,6 +185,10 @@ class Attrap:
             self.tor_get_new_id()
         else:
             logger.warning('ATTENTION: le safe mode est activé, Tor n\'a pas été activé')
+
+    def get_down_load(self,down_load):
+        self.down_load = down_load
+        print(f"L'option de téléchargement dans {__name__} est: {self.down_load}")
 
     def disable_tor(self):
         """Désactive l'utilisation de Tor."""
@@ -737,9 +743,12 @@ class Attrap:
                         os.remove(f'{self.data_dir}/{raa.name_of_ppri}/{raa.get_sha256()}.pdf')
                         os.remove(f'{self.data_dir}/{raa.name_of_ppri}/{raa.get_sha256()}.json')
             else:
-                #self.download_file(raa,True)
-                print('Ce document ne nous intérèsse pas, on ne l\'analyse pas')
-                # On supprime le fichier de metadonnées puisqu'on ne le parsera pas
+                if self.down_load:
+                    print('Téléchargement du fichier:')
+                    self.download_file(raa,True)
+                    print('Ce document ne nous intérèsse pas, on ne l\'analyse pas')
+                else:
+                    print(f'L\'option de téléchargement appliquée est {self.down_load}.\nOn ne télécharge pas le document')
 
     def get_raa(self, page_content):
         logger.error('Cette fonction doit être surchargée')

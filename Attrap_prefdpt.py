@@ -153,9 +153,10 @@ class Attrap_prefdpt(Attrap):
                     exclude=self.white_card['exclude']
                 )
             )
-
-    def get_raa(self, keywords):
-        print(self.page_urls_to_parse)
+    
+    def get_raa(self, keywords,down_load):
+        self.down_load = down_load
+        Attrap.get_down_load(self,self.down_load)
         while not self.page_urls_to_parse == []:
             page_url = self.page_urls_to_parse[-1]
             page_content = self.get_page(page_url[0], 'get').content  # On récupère le HTML de la page

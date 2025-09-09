@@ -6,13 +6,13 @@ import logging
 import datetime
 import dateparser
 import importlib
+import json
 
 from Attrap import Attrap
-
 # Config
 __KEYWORDS = os.getenv('KEYWORDS') or ''
 __DATA_DIR_ROOT = os.path.dirname(os.path.abspath(__file__)) + '/data/'
-__DOWNLOAD_FILES = False
+__DOWNLOAD = False
 
 if os.getenv('NOT_BEFORE'):
     try:
@@ -27,7 +27,16 @@ else:
 
 # Liste des administrations supportées
 available_administrations = [
-    'PPRI_01','PPRI_02','PPRI_03','PPRI_38','PPRI_69','PPRI_17'
+    'PPRI_01','PPRI_02','PPRI_2A','PPRI_2B','PPRI_03','PPRI_04','PPRI_05','PPRI_06','PPRI_07','PPRI_08','PPRI_09',
+    'PPRI_10','PPRI_11','PPRI_12','PPRI_13','PPRI_14','PPRI_15','PPRI_16','PPRI_17','PPRI_18','PPRI_19',
+    'PPRI_20','PPRI_21','PPRI_22','PPRI_23','PPRI_24','PPRI_25','PPRI_26','PPRI_27','PPRI_28','PPRI_29',
+    'PPRI_30','PPRI_31','PPRI_32','PPRI_33','PPRI_34','PPRI_35','PPRI_36','PPRI_37','PPRI_38','PPRI_39',
+    'PPRI_40','PPRI_41','PPRI_42','PPRI_43','PPRI_44','PPRI_45','PPRI_46','PPRI_47','PPRI_48','PPRI_49',
+    'PPRI_50','PPRI_51','PPRI_52','PPRI_53','PPRI_54','PPRI_55','PPRI_56','PPRI_57','PPRI_58','PPRI_59',
+    'PPRI_60','PPRI_61','PPRI_62','PPRI_63','PPRI_64','PPRI_65','PPRI_66','PPRI_67','PPRI_68','PPRI_69',
+    'PPRI_70','PPRI_71','PPRI_72','PPRI_73','PPRI_74','PPRI_75','PPRI_76','PPRI_77','PPRI_78','PPRI_79',
+    'PPRI_80','PPRI_81','PPRI_82','PPRI_83','PPRI_84','PPRI_85','PPRI_86','PPRI_87','PPRI_88','PPRI_89',
+    'PPRI_90','PPRI_91','PPRI_92','PPRI_93','PPRI_94','PPRI_95','PPRI_971','PPRI_972','PPRI_973','PPRI_974','PPRI_976',
 ]
 
 # Début du script
@@ -84,6 +93,8 @@ if args.vv or os.getenv('VVERBOSE'):
 
 if args.keywords:
     __KEYWORDS = args.keywords
+if args.download_files:
+    __DOWNLOAD = True
 
 # if args.not_before:
 #     try:
@@ -98,4 +109,4 @@ module = importlib.import_module(f'Attrap_{args.administration}')
 attrap = getattr(module, f'Attrap_{args.administration}')(__DATA_DIR)
 
 attrap.not_before = __NOT_BEFORE
-attrap.get_raa(__KEYWORDS)
+attrap.get_raa(__KEYWORDS,__DOWNLOAD)
